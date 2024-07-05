@@ -41,4 +41,38 @@ class Setup
 
         return '';
     }
+
+    /**
+     * @filter rest_authentication_errors
+     */
+    public function disableDefaultEndpoints(\WP_Error|bool|null $access): \WP_Error|bool|null
+    {
+        $endpointsToRemove = [
+            '/wp/v2/users',
+        ];
+
+        if (! is_user_logged_in()) {
+            $currentEndpoint = $GLOBALS['wp']->query_vars['rest_route'] ?: '';
+
+            foreach ($endpointsToRemove as $toRemove) {
+                if (false !== stripos($currentEndpoint, $toRemove)) {
+                    if (is_wp_error($access)) {
+                        $access->add(
+                            'rest_forbidden',
+                            __('Sorry, you are not allowed to do that.', 'firestarter'),
+                            ['status' => rest_authorization_required_code()]
+                        );
+                    } else {
+                        return new \WP_Error(
+                            'rest_forbidden',
+                            __('Sorry, you are not allowed to do that.', 'firestarter'),
+                            ['status' => rest_authorization_required_code()]
+                        );
+                    }
+                }
+            }
+        }
+
+        return $access;
+    }
 }
